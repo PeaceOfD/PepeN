@@ -63,7 +63,8 @@ public sealed class HevRouteTransaction(IHevRouteBackend backend)
                 await SaveJournalAsync(journalPath, journal, cancellationToken);
             }
 
-            File.Delete(journalPath);
+            // Keep the journal for the entire lifetime of the tunnel. It is the crash-recovery
+            // record and is removed only after RecoverAsync has restored the original route state.
         }
         catch
         {
