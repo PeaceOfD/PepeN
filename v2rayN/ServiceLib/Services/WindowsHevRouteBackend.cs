@@ -63,6 +63,7 @@ if ($null -ne $route) {{ 'true' }} else {{ 'false' }}
 
     public async Task AddAsync(HevRouteAction route, CancellationToken cancellationToken)
     {
+        EnsureAdministrator();
         ValidateRoute(route);
         var script = $@"
 New-NetRoute -DestinationPrefix '{Escape(route.DestinationPrefix)}' -InterfaceIndex {route.InterfaceIndex} -NextHop '{Escape(route.NextHop.ToString())}' -RouteMetric {route.RouteMetric} -PolicyStore ActiveStore -ErrorAction Stop | Out-Null
@@ -72,6 +73,7 @@ New-NetRoute -DestinationPrefix '{Escape(route.DestinationPrefix)}' -InterfaceIn
 
     public async Task RemoveAsync(HevRouteAction route, CancellationToken cancellationToken)
     {
+        EnsureAdministrator();
         ValidateRoute(route);
         var script = $@"
 Get-NetRoute -DestinationPrefix '{Escape(route.DestinationPrefix)}' -InterfaceIndex {route.InterfaceIndex} -PolicyStore ActiveStore -ErrorAction SilentlyContinue |
@@ -101,6 +103,15 @@ Get-NetRoute -DestinationPrefix '{Escape(route.DestinationPrefix)}' -InterfaceIn
     {
         if (!OperatingSystem.IsWindows())
             throw new PlatformNotSupportedException("The Hev route backend is available only on Windows.");
+    }
+
+    private static void EnsureAdministrator()
+    {
+        EnsureWindows();
+        using var identity = WindowsIdentity.GetCurrent();
+        var principal = new WindowsPrincipal(identity);
+        if (!principal.IsInRole(WindowsBuiltInRole.Administrator))
+            throw new UnauthorizedAccessException("Changing Windows routes requires running PepeN as Administrator.");
     }
 
     private static async Task<string> RunPowerShellAsync(string script, CancellationToken cancellationToken)
