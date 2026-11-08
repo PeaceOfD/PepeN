@@ -111,7 +111,8 @@ Get-NetRoute -DestinationPrefix '{Escape(route.DestinationPrefix)}' -InterfaceIn
 
     private static void EnsureAdministrator()
     {
-        EnsureWindows();
+        if (!OperatingSystem.IsWindows())
+            throw new PlatformNotSupportedException("The Hev route backend is available only on Windows.");
         using var identity = WindowsIdentity.GetCurrent();
         var principal = new WindowsPrincipal(identity);
         if (!principal.IsInRole(WindowsBuiltInRole.Administrator))
