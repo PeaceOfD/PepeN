@@ -6,6 +6,19 @@ namespace ServiceLib.Tests.Services;
 
 public class HevUpstreamEndpointResolverTests
 {
+    private static async Task<bool> ThrowsAsync<TException>(Func<Task> action) where TException : Exception
+    {
+        try
+        {
+            await action();
+            return false;
+        }
+        catch (TException)
+        {
+            return true;
+        }
+    }
+
     [Test]
     public async Task ResolvesXrayAndSingboxOutboundEndpointsOnly()
     {
@@ -35,13 +48,13 @@ public class HevUpstreamEndpointResolverTests
                 });
             });
 
-        result.Should().BeEquivalentTo(new[]
+        await result.Should().BeEquivalentTo(new[]
         {
             IPAddress.Parse("203.0.113.10"),
             IPAddress.Parse("198.51.100.7"),
             IPAddress.Parse("2001:db8::10")
         });
-        calls.Should().BeEquivalentTo(new[] { "proxy.example", "edge.example" });
+        await calls.Should().BeEquivalentTo(new[] { "proxy.example", "edge.example" });
     }
 
     [Test]
@@ -62,7 +75,7 @@ public class HevUpstreamEndpointResolverTests
                 ? Task.FromResult(new[] { IPAddress.Parse("203.0.113.10") })
                 : throw new SocketException((int)SocketError.HostNotFound));
 
-        await act.Should().ThrowAsync<SocketException>();
+        await ThrowsAsync<SocketException>(act).Should().BeTrue();
     }
 
     [Test]
@@ -83,7 +96,7 @@ public class HevUpstreamEndpointResolverTests
                 ? new[] { IPAddress.Parse("203.0.113.10") }
                 : Array.Empty<IPAddress>()));
 
-        await act.Should().ThrowAsync<InvalidDataException>();
+        await ThrowsAsync<InvalidDataException>(act).Should().BeTrue();
     }
 
     [Test]
