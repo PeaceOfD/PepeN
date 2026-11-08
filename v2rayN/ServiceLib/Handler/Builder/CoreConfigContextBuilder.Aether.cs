@@ -51,7 +51,7 @@ public partial class CoreConfigContextBuilder
     private static async Task RegisterAetherNodeAsync(CoreConfigContext context, ProfileItem node)
     {
         var core = AetherCore.Of(node, AetherPorts.ListenPortOf(context.AppConfig.CoreBasicItem.AetherListenPort));
-        if (context.IsTunEnabled)
+        if (context.IsTunEnabled || context.IsHevEnabled)
         {
             if (AetherBootstrapNames.UpstreamHostOf(core.Arguments) is { } upstreamHost)
             {

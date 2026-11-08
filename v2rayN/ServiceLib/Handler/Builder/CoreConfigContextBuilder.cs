@@ -39,7 +39,7 @@ public partial class CoreConfigContextBuilder
     ///     RefusesRuleTarget).
     /// </summary>
     public static async Task<CoreConfigContextBuilderResult> Build(Config config, ProfileItem node, bool rulesCarriedBehind = false,
-        bool refuseRuleTargets = true)
+        bool refuseRuleTargets = true, bool hevEnabled = false)
     {
         var runCoreType = AppManager.Instance.GetCoreType(node, node.ConfigType);
         var coreType = runCoreType == ECoreType.sing_box ? ECoreType.sing_box : ECoreType.Xray;
@@ -50,7 +50,8 @@ public partial class CoreConfigContextBuilder
             AllProxiesMap = [],
             AppConfig = config,
             FullConfigTemplate = await AppManager.Instance.GetFullConfigTemplateItem(coreType),
-            IsTunEnabled = config.TunModeItem.EnableTun,
+            IsTunEnabled = config.TunModeItem.EnableTun && !hevEnabled,
+            IsHevEnabled = hevEnabled,
             SimpleDnsItem = config.SimpleDNSItem,
             ProtectDomainList = [],
             RawDnsItem = await AppManager.Instance.GetDNSItem(coreType),
@@ -60,10 +61,10 @@ public partial class CoreConfigContextBuilder
             IsLinux = Utils.IsLinux(),
             HasGlobalIPv6Address = Utils.HasGlobalIPv6Address(),
             IsIPv6DisabledByOs = Utils.IsIPv6DisabledByOs(),
-            ProtectCoreTypeList = config.TunModeItem.EnableTun ? [ECoreType.Xray, ECoreType.sing_box] : []
+            ProtectCoreTypeList = (config.TunModeItem.EnableTun || hevEnabled) ? [ECoreType.Xray, ECoreType.sing_box] : []
         };
         // PattN: what the Aether core and its helpers dial out themselves goes direct under the TUN as well
-        if (context.IsTunEnabled)
+        if (context.IsTunEnabled || context.IsHevEnabled)
         {
             context.ProtectCoreTypeList.Add(ECoreType.aether);
         }
@@ -206,9 +207,9 @@ public partial class CoreConfigContextBuilder
     ///     the main build succeeds, also builds the optional pre-socks context required for TUN
     ///     protection or pre-socks proxy chaining.
     /// </summary>
-    public static async Task<CoreConfigContextBuilderAllResult> BuildAll(Config config, ProfileItem node)
+    public static async Task<CoreConfigContextBuilderAllResult> BuildAll(Config config, ProfileItem node, bool hevEnabled = false)
     {
-        var mainResult = await Build(config, node);
+        var mainResult = await Build(config, node, hevEnabled: hevEnabled);
         if (!mainResult.Success)
         {
             return new CoreConfigContextBuilderAllResult(mainResult, null);
@@ -261,7 +262,8 @@ public partial class CoreConfigContextBuilder
         {
             // PattN: in front of a core of PattN's own configuration, which routes the same rules with their whole chains;
             // a custom configuration knows none of them
-            var preSocksResult = await Build(nodeContext.AppConfig, preSocksItem, rulesCarriedBehind: node.ConfigType != EConfigType.Custom);
+            var preSocksResult = await Build(nodeContext.AppConfig, preSocksItem, rulesCarriedBehind: node.ConfigType != EConfigType.Custom,
+                hevEnabled: nodeContext.IsHevEnabled);
 
             var protectCoreTypeList = new HashSet<ECoreType>(nodeContext.ProtectCoreTypeList) { nodeContext.RunCoreType };
 

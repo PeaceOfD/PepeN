@@ -141,7 +141,15 @@ public class AetherContextBuilderTests
         await context.ProtectDomainList.Should().Contain("bridges.torproject.org");
         await context.ProtectDomainList.Should().NotContain("engage.cloudflareclient.com");
 
-        // Without the TUN, the OS resolver looks them up for the freedom exit-node.
+        // Hev replaces the core-native TUN, but Aether bootstrap lookups still need physical-uplink protection.
+        var hev = ContextOf(tun, warp) with { IsTunEnabled = false, IsHevEnabled = true };
+        var (_, hevResult) = await CoreConfigContextBuilder.ResolveNodeAsync(hev, warp, false);
+        await hevResult.Success.Should().BeTrue();
+        await hev.ProtectDomainList.Should().Contain(AetherBootstrapNames.WarpApi);
+        await hev.ProtectDomainList.Should().Contain("dns.example");
+        await hev.ProtectDomainList.Should().Contain("bridges.torproject.org");
+
+        // Without either tunnel, the OS resolver looks them up for the freedom exit-node.
         var plain = ContextOf(NewConfig(), warp);
         await CoreConfigContextBuilder.ResolveNodeAsync(plain, warp, false);
         await plain.ProtectDomainList.Should().BeEmpty();
