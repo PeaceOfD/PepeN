@@ -13,7 +13,7 @@ public class HevRouteTransactionTests
             var routes = CreateRoutes();
             await transaction.ApplyAsync(routes, journal);
 
-            await backend.Added.Should().BeEqualTo(routes.Select(x => x.DestinationPrefix).ToList());
+            backend.Added.SequenceEqual(routes.Select(x => x.DestinationPrefix)).Should().BeTrue();
             await File.Exists(journal).Should().BeTrue();
 
             await transaction.RecoverAsync(journal);
