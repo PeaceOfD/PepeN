@@ -66,6 +66,27 @@ public class HevUpstreamEndpointResolverTests
     }
 
     [Test]
+    public async Task FailsClosedWhenOneOfSeveralEndpointsHasNoUsableAddress()
+    {
+        const string config = """
+            {
+              "outbounds": [
+                { "type": "vless", "server": "available.example" },
+                { "type": "trojan", "server": "unusable.example" }
+              ]
+            }
+            """;
+
+        var act = async () => await HevUpstreamEndpointResolver.ResolveAsync(
+            config,
+            resolveHost: (host, _) => Task.FromResult(host == "available.example"
+                ? new[] { IPAddress.Parse("203.0.113.10") }
+                : Array.Empty<IPAddress>()));
+
+        await act.Should().ThrowAsync<InvalidDataException>();
+    }
+
+    [Test]
     public async Task RejectsConfigsWithoutRecognizedProxyEndpoints()
     {
         const string config = """{ "outbounds": [{ "protocol": "freedom", "settings": {} }] }""";
