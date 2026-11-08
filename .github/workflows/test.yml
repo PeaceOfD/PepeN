@@ -16,6 +16,7 @@ on:
   pull_request:
     branches:
       - master
+      - 'pepen/**'
     paths:
       - 'v2rayN/ServiceLib/**'
       - 'v2rayN/ServiceLib.UdpTest/**'
