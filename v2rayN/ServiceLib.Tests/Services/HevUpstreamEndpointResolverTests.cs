@@ -48,13 +48,14 @@ public class HevUpstreamEndpointResolverTests
                 });
             });
 
-        await result.Should().BeEquivalentTo(new[]
+        var actualAddresses = result.Select(address => address.ToString()).ToArray();
+        actualAddresses.SequenceEqual(new[]
         {
-            IPAddress.Parse("203.0.113.10"),
-            IPAddress.Parse("198.51.100.7"),
-            IPAddress.Parse("2001:db8::10")
-        });
-        await calls.Should().BeEquivalentTo(new[] { "proxy.example", "edge.example" });
+            "203.0.113.10",
+            "198.51.100.7",
+            "2001:db8::10"
+        }).Should().BeTrue();
+        calls.SequenceEqual(new[] { "proxy.example", "edge.example" }).Should().BeTrue();
     }
 
     [Test]
