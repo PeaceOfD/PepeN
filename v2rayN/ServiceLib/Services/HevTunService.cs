@@ -95,7 +95,7 @@ public sealed class HevTunService : IAsyncDisposable
         var startInfo = new ProcessStartInfo
         {
             FileName = executablePath,
-            Arguments = $"\\"{configPath}\\"",
+            Arguments = $"\"{configPath}\"",
             WorkingDirectory = Path.GetDirectoryName(executablePath)!,
             UseShellExecute = false,
             CreateNoWindow = true,
