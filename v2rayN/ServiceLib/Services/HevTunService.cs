@@ -20,6 +20,9 @@ public sealed class HevTunService : IAsyncDisposable
         _configPath = configPath;
     }
 
+    /// <summary>Raised when the Hev process exits unexpectedly or after a requested stop.</summary>
+    public event EventHandler? Exited;
+
     public bool HasExited
     {
         get
@@ -93,12 +96,12 @@ public sealed class HevTunService : IAsyncDisposable
         process.OutputDataReceived += (_, e) =>
         {
             if (!string.IsNullOrWhiteSpace(e.Data))
-                _ = report?.Invoke(false, $"[Hev] {e.Data}{Environment.NewLine}");
+                _ = ReportSafelyAsync(report, $"[Hev] {e.Data}{Environment.NewLine}");
         };
         process.ErrorDataReceived += (_, e) =>
         {
             if (!string.IsNullOrWhiteSpace(e.Data))
-                _ = report?.Invoke(false, $"[Hev] {e.Data}{Environment.NewLine}");
+                _ = ReportSafelyAsync(report, $"[Hev] {e.Data}{Environment.NewLine}");
         };
 
         try
@@ -106,6 +109,8 @@ public sealed class HevTunService : IAsyncDisposable
             if (!process.Start())
                 throw new InvalidOperationException("Windows did not start the Hev process.");
 
+            var service = new HevTunService(process, configPath);
+            process.Exited += (_, _) => service.OnProcessExited();
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
             await Task.Delay(300, cancellationToken);
@@ -114,7 +119,7 @@ public sealed class HevTunService : IAsyncDisposable
 
             if (report is not null)
                 await report(false, $"Hev started; SOCKS5 127.0.0.1:{socksPort}, interface {InterfaceName}.");
-            return new HevTunService(process, configPath);
+            return service;
         }
         catch
         {
@@ -123,6 +128,19 @@ public sealed class HevTunService : IAsyncDisposable
             try { File.Delete(configPath); } catch { }
             throw;
         }
+    }
+
+    private void OnProcessExited()
+    {
+        try { Exited?.Invoke(this, EventArgs.Empty); }
+        catch (Exception ex) { Logging.SaveLog("HevTunService", ex); }
+    }
+
+    private static async Task ReportSafelyAsync(Func<bool, string, Task>? report, string message)
+    {
+        if (report is null) return;
+        try { await report(false, message); }
+        catch (Exception ex) { Logging.SaveLog("HevTunService", ex); }
     }
 
     public async Task StopAsync()
