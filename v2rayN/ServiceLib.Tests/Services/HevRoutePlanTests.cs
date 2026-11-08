@@ -51,9 +51,9 @@ public class HevRoutePlanTests
     }
 
     [Test]
-    public async Task RefusesIpv6DefaultWithoutAnIpv6UpstreamBypass()
+    public async Task AllowsIpv6TunnelDefaultWhenUpstreamEndpointIsIpv4Only()
     {
-        var threw = Throws<InvalidOperationException>(() => HevRoutePlan.Create(
+        var plan = HevRoutePlan.Create(
             tunnelInterfaceIndex: 77,
             physicalDefaults:
             [
@@ -61,9 +61,12 @@ public class HevRoutePlanTests
                 new(12, IPAddress.Parse("fe80::1"), 10, 10),
             ],
             upstreamAddresses: [IPAddress.Parse("203.0.113.20")],
-            includeIpv6: true));
+            includeIpv6: true);
 
-        await threw.Should().BeTrue();
+        await plan.Count.Should().BeEqualTo(2);
+        await plan[0].DestinationPrefix.Should().BeEqualTo("203.0.113.20/32");
+        await plan[1].DestinationPrefix.Should().BeEqualTo("::/0");
+        await plan[1].InterfaceIndex.Should().BeEqualTo(77);
     }
 
     [Test]

@@ -72,9 +72,9 @@ public static class HevRoutePlan
             if (route is null)
                 throw new InvalidOperationException($"No usable physical {FamilyName(family)} default route was found.");
 
-            if (!upstreams.Any(address => address.AddressFamily == family))
-                throw new InvalidOperationException(
-                    $"No resolved {FamilyName(family)} upstream IP is available to bypass the Hev tunnel.");
+            // The proxy endpoint may be IPv4-only while the host still has IPv6 traffic
+            // to tunnel. Bypass every resolved endpoint in its own family above; do not require
+            // an endpoint of each family merely to install that family's tunnel default route.
             selected.Add(family, route);
         }
 
