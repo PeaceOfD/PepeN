@@ -25,7 +25,25 @@ public sealed class HevRouteTransaction(IHevRouteBackend backend)
     }
 
     private readonly IHevRouteBackend _backend = backend ?? throw new ArgumentNullException(nameof(backend));
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        Converters = { new IPAddressConverter() }
+    };
+
+    private sealed class IPAddressConverter : JsonConverter<IPAddress>
+    {
+        public override IPAddress Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            var value = reader.GetString();
+            return IPAddress.TryParse(value, out var address)
+                ? address
+                : throw new JsonException("Invalid IP address in the Hev route journal.");
+        }
+
+        public override void Write(Utf8JsonWriter writer, IPAddress value, JsonSerializerOptions options) =>
+            writer.WriteStringValue(value.ToString());
+    }
 
     public async Task ApplyAsync(
         IReadOnlyList<HevRouteAction> routes,
