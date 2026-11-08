@@ -1,0 +1,42 @@
+name: Hev Windows validation
+
+on:
+  push:
+    branches:
+      - 'pepen/**'
+    paths:
+      - 'v2rayN/ServiceLib/**'
+      - 'v2rayN/ServiceLib.UdpTest/**'
+      - 'v2rayN/ServiceLib.Tests/**'
+      - 'v2rayN/Directory.Build.*'
+      - 'v2rayN/Directory.Packages.props'
+      - 'global.json'
+      - '.github/workflows/hev-windows-validation.yml'
+  pull_request:
+    branches:
+      - 'pepen/**'
+    paths:
+      - 'v2rayN/ServiceLib/**'
+      - 'v2rayN/ServiceLib.UdpTest/**'
+      - 'v2rayN/ServiceLib.Tests/**'
+      - 'v2rayN/Directory.Build.*'
+      - 'v2rayN/Directory.Packages.props'
+      - 'global.json'
+      - '.github/workflows/hev-windows-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  windows-test:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.x'
+          dotnet-quality: 'ga'
+      - name: Run ServiceLib tests on Windows
+        run: dotnet test --project ./v2rayN/ServiceLib.Tests -c Release --results-directory ./TestResults -- --report-trx
