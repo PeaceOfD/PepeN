@@ -96,6 +96,22 @@ jobs:
       working-directory: ./v2rayN
       run: dotnet publish ./AmazTool/AmazTool.csproj -c Release -r $RID -p:SelfContained=true -p:PublishTrimmed=true $ExtOpt ${Version:+-p:Version=$Version} -o $Output
 
+    - name: Add Hev Windows runtime
+      if: inputs.target == 'windows' && matrix.arch == 'x64'
+      shell: pwsh
+      run: |
+        $archive = Join-Path $env:RUNNER_TEMP 'hev-win64.zip'
+        $extract = Join-Path $env:RUNNER_TEMP 'hev-win64'
+        Invoke-WebRequest -Uri 'https://github.com/heiher/hev-socks5-tunnel/releases/download/2.19.3/hev-socks5-tunnel-win64.zip' -OutFile $archive
+        Expand-Archive -Path $archive -DestinationPath $extract -Force
+        $hev = Get-ChildItem -Path $extract -Recurse -File -Filter 'hev-socks5-tunnel.exe' | Select-Object -First 1
+        $wintun = Get-ChildItem -Path $extract -Recurse -File -Filter 'wintun.dll' | Select-Object -First 1
+        if (-not $hev -or -not $wintun) {
+          throw 'The pinned Hev archive must contain hev-socks5-tunnel.exe and wintun.dll.'
+        }
+        Copy-Item $hev.FullName (Join-Path $env:Output 'hev-socks5-tunnel.exe') -Force
+        Copy-Item $wintun.FullName (Join-Path $env:Output 'wintun.dll') -Force
+
     - name: Remove Debug Symbols
       shell: bash
       run: |
