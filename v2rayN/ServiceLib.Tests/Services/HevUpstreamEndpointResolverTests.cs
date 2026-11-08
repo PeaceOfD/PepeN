@@ -51,8 +51,8 @@ public class HevUpstreamEndpointResolverTests
         var actualAddresses = result.Select(address => address.ToString()).ToArray();
         await actualAddresses.SequenceEqual(new[]
         {
-            "203.0.113.10",
             "198.51.100.7",
+            "203.0.113.10",
             "2001:db8::10"
         }).Should().BeTrue();
         await calls.SequenceEqual(new[] { "proxy.example", "edge.example" }).Should().BeTrue();
