@@ -16,6 +16,8 @@ public sealed class WindowsHevRouteBackend : IHevRouteBackend
 $routes = @(Get-NetRoute -PolicyStore ActiveStore -ErrorAction Stop |
     Where-Object { $_.DestinationPrefix -in @('0.0.0.0/0', '::/0') })
 $result = @($routes | ForEach-Object {
+    $adapter = Get-NetAdapter -InterfaceIndex $_.ifIndex -ErrorAction SilentlyContinue
+    if ($null -eq $adapter -or -not $adapter.HardwareInterface -or $adapter.Status -ne 'Up') { return }
     $family = if ($_.DestinationPrefix -eq '::/0') { 'IPv6' } else { 'IPv4' }
     $interface = Get-NetIPInterface -InterfaceIndex $_.ifIndex -AddressFamily $family -ErrorAction Stop
     [pscustomobject]@{
@@ -29,9 +31,11 @@ ConvertTo-Json -InputObject $result -Compress -Depth 3
 ";
         var output = await RunPowerShellAsync(script, cancellationToken);
         using var document = JsonDocument.Parse(output);
-        var elements = document.RootElement.ValueKind == JsonValueKind.Array
-            ? document.RootElement.EnumerateArray().ToArray()
-            : [document.RootElement];
+        JsonElement[] elements;
+        if (document.RootElement.ValueKind == JsonValueKind.Array)
+            elements = document.RootElement.EnumerateArray().ToArray();
+        else
+            elements = new[] { document.RootElement };
 
         var routes = new List<HevPhysicalDefaultRoute>();
         foreach (var item in elements)
