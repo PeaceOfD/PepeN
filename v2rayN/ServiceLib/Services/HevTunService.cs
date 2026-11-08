@@ -143,7 +143,7 @@ public sealed class HevTunService : IAsyncDisposable
     {
         // Hev creates the Wintun adapter asynchronously. Do not let the caller install routes
         // until Windows can see the adapter in the Up state.
-        var deadline = Stopwatch.StartNew();
+        var deadline = System.Diagnostics.Stopwatch.StartNew();
         var timeout = TimeSpan.FromSeconds(15);
         while (deadline.Elapsed < timeout)
         {
