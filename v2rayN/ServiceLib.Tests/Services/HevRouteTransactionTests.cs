@@ -63,12 +63,19 @@ public class HevRouteTransactionTests
         var journal = NewJournalPath();
         try
         {
-            var serialized = JsonSerializer.Serialize(new
-            {
-                Routes = new[] { route },
-                InFlightIndex = 0,
-                AppliedCount = 0
-            });
+            var serialized = $"""
+                {
+                  "Routes": [{
+                    "DestinationPrefix": "{{route.DestinationPrefix}}",
+                    "InterfaceIndex": {{route.InterfaceIndex}},
+                    "NextHop": "{{route.NextHop}}",
+                    "RouteMetric": {{route.RouteMetric}},
+                    "IsUpstreamBypass": true
+                  }],
+                  "InFlightIndex": 0,
+                  "AppliedCount": 0
+                }
+                """;
             await File.WriteAllTextAsync(journal, serialized);
 
             await new HevRouteTransaction(backend).RecoverAsync(journal);
