@@ -64,11 +64,12 @@ public static class HevUpstreamEndpointResolver
                 resolved = await resolveHost(host, cancellationToken);
             }
 
-            foreach (var address in resolved)
-            {
-                if (IsUsableEndpoint(address))
-                    addresses.Add(address);
-            }
+            var usableAddresses = resolved.Where(IsUsableEndpoint).Distinct().ToArray();
+            if (usableAddresses.Length == 0)
+                throw new InvalidDataException($"Proxy endpoint '{host}' did not resolve to a usable unicast IP address.");
+
+            foreach (var address in usableAddresses)
+                addresses.Add(address);
         }
 
         if (addresses.Count == 0)
