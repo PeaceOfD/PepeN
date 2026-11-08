@@ -1,0 +1,64 @@
+ARG RID=linux-x64
+ARG WEB_VERSION=0.0.0-dev
+ARG WEB_COMMIT=unknown
+ARG WEB_BUILD_DATE=unknown
+ARG WEB_REPOSITORY=patterniha/PattN
+
+FROM --platform=$BUILDPLATFORM docker.io/library/alpine:3.22 AS core-assets
+ARG RID
+RUN apk add --no-cache ca-certificates curl unzip
+COPY v2rayN/v2rayN.WebAPI/Scripts/fetch-core-bundle.sh /usr/local/bin/fetch-core-bundle
+RUN sh /usr/local/bin/fetch-core-bundle "$RID" /out/bin
+# PattN: the Aether core with its license texts and notice in bin/aether and Psiphon's signed server list in bin, as in
+# the release zips and PattN's desktop packages: package-aether.sh, with the files it reads, needs bash, python3 and
+# openssl; a failed checksum, signature or license fetch fails the build. linux-riscv64 and linux-loongarch64 have no
+# Aether archive, and the script bundles nothing there.
+RUN apk add --no-cache bash python3 openssl
+COPY package-aether.sh /pattn/package-aether.sh
+COPY licenses/aether/ /pattn/licenses/aether/
+COPY v2rayN/ServiceLib/Global.cs /pattn/v2rayN/ServiceLib/Global.cs
+COPY v2rayN/ServiceLib/Aether/PsiphonServerList.cs /pattn/v2rayN/ServiceLib/Aether/PsiphonServerList.cs
+RUN case "$RID" in \
+      linux-x64) platform=linux-64 ;; \
+      linux-arm64) platform=linux-arm64 ;; \
+      *) platform="$RID" ;; \
+    esac \
+    && bash /pattn/package-aether.sh "$platform" /out/bin
+
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS publish
+ARG RID
+ARG WEB_VERSION
+ARG WEB_COMMIT
+ARG WEB_BUILD_DATE
+ARG WEB_REPOSITORY
+WORKDIR /src
+COPY v2rayN/ ./v2rayN/
+RUN NUGET_PACKAGES=/src/.packages/nuget dotnet publish v2rayN/v2rayN.WebAPI/v2rayN.WebAPI.csproj \
+    --configuration Release \
+    --runtime "$RID" \
+    --self-contained true \
+    -p:PublishSingleFile=true \
+    -p:IncludeNativeLibrariesForSelfExtract=true \
+    -p:WebVersion="$WEB_VERSION" \
+    -p:WebCommit="$WEB_COMMIT" \
+    -p:WebBuildDate="$WEB_BUILD_DATE" \
+    -p:WebRepository="$WEB_REPOSITORY" \
+    --output /out \
+    && mkdir -p /runtime-data
+# Copy the complete upstream bin/ payload; do not curate or enumerate Core files here.
+COPY --from=core-assets /out/bin/ /out/bin/
+
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0 AS runtime
+WORKDIR /app
+COPY --from=publish --chown=10001:10001 /out/ ./
+COPY --from=publish --chown=10001:10001 /runtime-data/ /data/
+ENV ASPNETCORE_URLS=http://0.0.0.0:5080 \
+    V2RAYN_DATA_HOME=/data \
+    DOTNET_BUNDLE_EXTRACT_BASE_DIR=/data/.net-bundle \
+    V2RAYN_WEB_PROXY_PORT=10808 \
+    V2RAYN_WEB_PROXY_LISTEN_ALL=true \
+    V2RAYN_WEB_AUTOSTART=true
+VOLUME ["/data"]
+EXPOSE 5080/tcp 10808/tcp 10808/udp
+USER 10001:10001
+ENTRYPOINT ["/app/v2rayN.WebAPI", "--foreground"]
