@@ -1,26 +1,32 @@
-# PattN
+# PepeN
 
-v2rayN fork for Iranians
+PepeN is a Windows-focused continuation built from the PattN codebase. The initial application keeps the upstream/default interface while the project is being renamed and its networking components are reviewed.
 
-**تغییرات v2rayN:**
+## Upstream projects and attribution
 
-* اضافه شدن cipherSuites و فینگرپرینت unsafe در تنظیمات و شیرلینک.
+- **PattN** by [patterniha](https://github.com/patterniha/PattN) — the direct codebase used as the starting point.
+- **v2rayN** by [2dust](https://github.com/2dust/v2rayN) — the upstream project on which PattN is based.
+- **Aether** and other bundled components retain their respective upstream licenses and notices.
 
-* اضافه شدن هسته‌ی aether
+PepeN is an independent community project and is not affiliated with or endorsed by the upstream maintainers. Existing copyright and license notices are retained in the source tree. See [LICENSE](LICENSE) and the files under [licenses](licenses).
 
-**تغییرات Xray-core:**
+## Build (Windows)
 
-* امکان اتصال به کانفیگ‌های غیر رمزنگاری شده برای آدرس‌های عمومی در VLESS و TROJAN
+Requirements:
+- .NET 10 SDK
+- Git with submodule support
+- Visual Studio 2022 or newer with the .NET desktop development workload (for the WPF project)
 
+Clone the repository including submodules:
 
-## حمایت
+```powershell
+git clone --recurse-submodules https://github.com/PeaceOfD/PepeN.git
+cd PepeN
+dotnet publish .\v2rayN\v2rayN\v2rayN.csproj -c Release -r win-x64 -p:SelfContained=true -p:EnableWindowsTargeting=true
+```
 
-اگر کارهای بنده باعث دسترسی شما به اینترنت آزاد شده است ممنون میشم حمایتی هم از اینجانب انجام دهید
+The initial Windows WPF application is published from `v2rayN/v2rayN/v2rayN.csproj`. The Avalonia desktop project remains available separately.
 
-`USDT (BEP20)`: 0x76a768B53Ca77B43086946315f0BDF21156bF424
+## Project status
 
-`USDT (TRC20)`: TU5gKvKqcXPn8itp1DouBCwcqGHMemBm8o
-
-`TON (TON)`: UQAc-mZB3y7uxWHKiMmq0ORZEYgycWDWZ4V1k73HsXvTJx-i
-
-@patterniha
+The repository is being adapted in stages. Branding and build automation are being updated first; tunnel/runtime changes will be integrated only after their Windows build, lifecycle, routing, and cleanup behavior can be validated.
