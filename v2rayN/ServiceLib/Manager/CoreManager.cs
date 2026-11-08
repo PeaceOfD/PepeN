@@ -18,6 +18,11 @@ public class CoreManager
     private Func<bool, string, Task>? _updateFunc;
     private const string _tag = "CoreHandler";
 
+    // Hev journals are recovered before any new core session can start. If recovery fails,
+    // loading is blocked so a stale tunnel route/metric cannot silently survive a restart.
+    private HevNetworkTransaction? _hevNetworkTransaction;
+    private bool _hevRecoveryReady;
+
     // PattN: loads and stops take turns with the stop that follows an Aether core exiting on its own (critique 15)
     private readonly AetherCoreTurns _turns = new();
     private bool _aetherSessionWatched;
@@ -67,6 +72,29 @@ public class CoreManager
     {
         _config = config;
         _updateFunc = updateFunc;
+
+        // Recover any interrupted Hev route/metric transaction before the app can start another
+        // core session. A failed recovery is fail-closed: LoadCore will refuse to start.
+        _hevRecoveryReady = !Utils.IsWindows();
+        if (Utils.IsWindows())
+        {
+            _hevNetworkTransaction = new HevNetworkTransaction(
+                new HevRouteTransaction(new WindowsHevRouteBackend()),
+                new HevInterfaceMetricTransaction(new WindowsHevInterfaceMetricBackend()));
+            try
+            {
+                await _hevNetworkTransaction.RecoverAsync(
+                    Utils.GetBinConfigPath("hev-routes.journal.json"),
+                    Utils.GetBinConfigPath("hev-metrics.journal.json"));
+                _hevRecoveryReady = true;
+            }
+            catch (Exception ex)
+            {
+                Logging.SaveLog("CoreManager.HevStartupRecovery", ex);
+                await UpdateFunc(true,
+                    $"Hev network recovery failed. PepeN will not start a core until the previous Windows routes and interface metrics are restored: {ex.Message}");
+            }
+        }
 
         // PattN: the Aether cores' output goes to the message view, and a session core that exits on its own takes
         // Xray with it (design 2.6.4)
@@ -168,6 +196,12 @@ public class CoreManager
     // PattN: LoadCore's own work, from inside a turn
     private async Task LoadCoreInTurn(CoreConfigContext mainContext, CoreConfigContext? preContext)
     {
+        if (!_hevRecoveryReady)
+        {
+            await UpdateFunc(true, "Core startup was blocked because a previous Hev network transaction could not be recovered. Restart PepeN as Administrator and retry; do not delete the Hev recovery journals.");
+            return;
+        }
+
         var node = mainContext.Node;
         var fileName = Utils.GetBinConfigPath(Global.CoreConfigFileName);
         var result = await CoreConfigHandler.GenerateClientConfig(mainContext, fileName);
