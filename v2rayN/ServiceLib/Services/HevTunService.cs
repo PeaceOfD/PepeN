@@ -1,3 +1,5 @@
+using System.Security.Principal;
+
 namespace ServiceLib.Services;
 
 /// <summary>
@@ -80,6 +82,7 @@ public sealed class HevTunService : IAsyncDisposable
     {
         if (!OperatingSystem.IsWindows())
             throw new PlatformNotSupportedException("Hev Windows integration is only available on Windows.");
+        EnsureAdministrator();
         var yaml = BuildConfig(socksPort, mtu, ipv4Address, ipv6Address);
 
         var executablePath = Utils.GetBinPath(ExecutableName);
@@ -137,6 +140,14 @@ public sealed class HevTunService : IAsyncDisposable
             try { File.Delete(configPath); } catch { }
             throw;
         }
+    }
+
+    private static void EnsureAdministrator()
+    {
+        using var identity = WindowsIdentity.GetCurrent();
+        if (!new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator))
+            throw new UnauthorizedAccessException(
+                "Hev requires PepeN to be started with Administrator privileges before creating its tunnel adapter.");
     }
 
     private static async Task WaitForTunnelInterfaceAsync(Process process, CancellationToken cancellationToken)
