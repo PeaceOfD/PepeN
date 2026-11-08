@@ -1,0 +1,45 @@
+name: PepeN Windows test build
+
+on:
+  push:
+    branches:
+      - 'pepen/**'
+    paths:
+      - 'v2rayN/**'
+      - '.github/workflows/windows-test-build.yml'
+      - 'global.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.x'
+          dotnet-quality: 'ga'
+
+      - name: Publish PepeN for Windows x64
+        run: >
+          dotnet publish ./v2rayN/v2rayN/v2rayN.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -o ./artifacts/PepeN-win-x64
+
+      - name: Upload Windows test build
+        uses: actions/upload-artifact@v4
+        with:
+          name: PepeN-Windows-x64-test
+          path: ./artifacts/PepeN-win-x64/
+          if-no-files-found: error
+          retention-days: 14
