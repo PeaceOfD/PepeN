@@ -63,7 +63,7 @@ public class HevRouteTransactionTests
         var journal = NewJournalPath();
         try
         {
-            var serialized = $"""
+            var serialized = $$"""
                 {
                   "Routes": [{
                     "DestinationPrefix": "{{route.DestinationPrefix}}",
