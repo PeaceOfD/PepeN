@@ -63,10 +63,11 @@ public class HevRoutePlanTests
             upstreamAddresses: [IPAddress.Parse("203.0.113.20")],
             includeIpv6: true);
 
-        await plan.Count.Should().BeEqualTo(2);
+        await plan.Count.Should().BeEqualTo(3);
         await plan[0].DestinationPrefix.Should().BeEqualTo("203.0.113.20/32");
-        await plan[1].DestinationPrefix.Should().BeEqualTo("::/0");
-        await plan[1].InterfaceIndex.Should().BeEqualTo(77);
+        await plan[1].DestinationPrefix.Should().BeEqualTo("0.0.0.0/0");
+        await plan[2].DestinationPrefix.Should().BeEqualTo("::/0");
+        await plan[2].InterfaceIndex.Should().BeEqualTo(77);
     }
 
     [Test]
