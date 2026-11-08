@@ -26,6 +26,29 @@ public class HevTunnelConfigBuilderTests
     }
 
     [Test]
+    public async Task Build_ShouldRejectAnUnresolvedSocks5Hostname()
+    {
+        var rejected = false;
+        try
+        {
+            HevTunnelConfigBuilder.Build(new HevTunnelOptions(
+                InterfaceName: "PepeN-TUN",
+                InterfaceGuid: null,
+                Mtu: 1500,
+                IPv4Address: "198.18.0.1",
+                IPv6Address: null,
+                Socks5Address: "localhost",
+                Socks5Port: 10808));
+        }
+        catch (ArgumentException)
+        {
+            rejected = true;
+        }
+
+        await rejected.Should().BeTrue();
+    }
+
+    [Test]
     public async Task Build_ShouldAllowIpv4OnlyAndIcmpReplies()
     {
         var yaml = HevTunnelConfigBuilder.Build(new HevTunnelOptions(
