@@ -14,6 +14,10 @@ public class HevRouteTransactionTests
             await transaction.ApplyAsync(routes, journal);
 
             await backend.Added.Should().BeEqualTo(routes.Select(x => x.DestinationPrefix).ToList());
+            await File.Exists(journal).Should().BeTrue();
+
+            await transaction.RecoverAsync(journal);
+            await backend.Present.Count.Should().BeEqualTo(0);
             await File.Exists(journal).Should().BeFalse();
         }
         finally
