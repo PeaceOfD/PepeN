@@ -376,7 +376,7 @@ public class CoreManager
         {
             return;
         }
-        if (!preContext.IsTunEnabled)
+        if (!preContext.IsTunEnabled && !preContext.IsHevEnabled)
         {
             return;
         }
