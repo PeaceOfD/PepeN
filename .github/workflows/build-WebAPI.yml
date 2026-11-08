@@ -315,7 +315,7 @@ jobs:
       # PattN's Windows zips (the aether-windows job); web-release-assets.py checks them when it packages
       - name: Add the Aether core and Psiphon's server list
         if: inputs.release_tag != ''
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: aether-windows-bin
           path: ${{ runner.temp }}/v2rayN.WebAPI-win-x64/bin
@@ -472,7 +472,7 @@ jobs:
       # checks them when it packages
       - name: Add the Aether core and Psiphon's server list
         if: inputs.release_tag != ''
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: aether-windows-bin
           path: ${{ runner.temp }}/v2rayN.WebAPI-win-arm64/bin
@@ -998,7 +998,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: v2rayN.WebAPI-*
           path: release-assets
