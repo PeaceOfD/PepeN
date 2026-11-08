@@ -109,7 +109,7 @@ public sealed class HevRouteTransaction(IHevRouteBackend backend)
             return;
 
         var json = await File.ReadAllTextAsync(journalPath, cancellationToken);
-        var journal = JsonSerializer.Deserialize<Journal>(json)
+        var journal = JsonSerializer.Deserialize<Journal>(json, JsonOptions)
             ?? throw new InvalidDataException("The Hev route recovery journal is invalid.");
         await RollbackAsync(journal, journalPath, cancellationToken);
     }
