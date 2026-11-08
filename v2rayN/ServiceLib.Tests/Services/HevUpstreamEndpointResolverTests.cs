@@ -75,7 +75,8 @@ public class HevUpstreamEndpointResolverTests
                 ? Task.FromResult(new[] { IPAddress.Parse("203.0.113.10") })
                 : throw new SocketException((int)SocketError.HostNotFound));
 
-        await ThrowsAsync<SocketException>(act).Should().BeTrue();
+        var threw = await ThrowsAsync<SocketException>(act);
+        threw.Should().BeTrue();
     }
 
     [Test]
@@ -96,7 +97,8 @@ public class HevUpstreamEndpointResolverTests
                 ? new[] { IPAddress.Parse("203.0.113.10") }
                 : Array.Empty<IPAddress>()));
 
-        await ThrowsAsync<InvalidDataException>(act).Should().BeTrue();
+        var threw = await ThrowsAsync<InvalidDataException>(act);
+        threw.Should().BeTrue();
     }
 
     [Test]
@@ -106,7 +108,8 @@ public class HevUpstreamEndpointResolverTests
 
         var act = async () => await HevUpstreamEndpointResolver.ResolveAsync(config);
 
-        await act.Should().ThrowAsync<InvalidDataException>();
+        var threw = await ThrowsAsync<InvalidDataException>(act);
+        threw.Should().BeTrue();
     }
 
     [Test]
@@ -125,6 +128,7 @@ public class HevUpstreamEndpointResolverTests
             config,
             resolveHost: (host, _) => Task.FromResult(new[] { IPAddress.Loopback, IPAddress.Parse("239.1.1.1") }));
 
-        await act.Should().ThrowAsync<InvalidDataException>();
+        var threw = await ThrowsAsync<InvalidDataException>(act);
+        threw.Should().BeTrue();
     }
 }
