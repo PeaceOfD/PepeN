@@ -36,16 +36,12 @@ public sealed class HevTunService : IAsyncDisposable
     /// Starts Hev against the local SOCKS5 listener. The executable and matching-architecture
     /// wintun.dll must be installed side-by-side in the application's bin directory.
     /// </summary>
-    public static async Task<HevTunService> StartAsync(
-        int socksPort,
-        int mtu,
-        string ipv4Address,
-        string? ipv6Address,
-        Func<bool, string, Task>? report = null,
-        CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Builds a validated Hev configuration without touching the filesystem or network.
+    /// Kept separate so the exact runtime configuration can be covered by unit tests.
+    /// </summary>
+    public static string BuildConfig(int socksPort, int mtu, string ipv4Address, string? ipv6Address)
     {
-        if (!OperatingSystem.IsWindows())
-            throw new PlatformNotSupportedException("Hev Windows integration is only available on Windows.");
         if (socksPort is < 1 or > 65535)
             throw new ArgumentOutOfRangeException(nameof(socksPort));
         if (mtu is < 576 or > 9000)
@@ -56,13 +52,6 @@ public sealed class HevTunService : IAsyncDisposable
             && (!IPAddress.TryParse(ipv6Address, out var ipv6) || ipv6.AddressFamily != AddressFamily.InterNetworkV6))
             throw new ArgumentException("The optional tunnel address must be a valid IPv6 address.", nameof(ipv6Address));
 
-        var executablePath = Utils.GetBinPath(ExecutableName);
-        var wintunPath = Utils.GetBinPath(WintunLibraryName);
-        if (!File.Exists(executablePath))
-            throw new FileNotFoundException($"Hev executable was not found: {executablePath}", executablePath);
-        if (!File.Exists(wintunPath))
-            throw new FileNotFoundException($"The matching Wintun library was not found: {wintunPath}", wintunPath);
-
         var yaml = new StringBuilder()
             .AppendLine("tunnel:")
             .AppendLine($"  name: {InterfaceName}")
@@ -71,15 +60,36 @@ public sealed class HevTunService : IAsyncDisposable
             .AppendLine($"  ipv4: '{ipv4}'")
             .AppendLine("  icmp: 'off'");
         if (!string.IsNullOrWhiteSpace(ipv6Address))
-            yaml.AppendLine($"  ipv6: '{ipv6Address}'");
+            yaml.AppendLine($"  ipv6: '{IPAddress.Parse(ipv6Address)}'");
         yaml.AppendLine("socks5:")
             .AppendLine($"  port: {socksPort}")
             .AppendLine("  address: 127.0.0.1")
             .AppendLine("  udp: 'udp'")
             .AppendLine("  log-level: info");
+        return yaml.ToString();
+    }
+
+    public static async Task<HevTunService> StartAsync(
+        int socksPort,
+        int mtu,
+        string ipv4Address,
+        string? ipv6Address,
+        Func<bool, string, Task>? report = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!OperatingSystem.IsWindows())
+            throw new PlatformNotSupportedException("Hev Windows integration is only available on Windows.");
+        var yaml = BuildConfig(socksPort, mtu, ipv4Address, ipv6Address);
+
+        var executablePath = Utils.GetBinPath(ExecutableName);
+        var wintunPath = Utils.GetBinPath(WintunLibraryName);
+        if (!File.Exists(executablePath))
+            throw new FileNotFoundException($"Hev executable was not found: {executablePath}", executablePath);
+        if (!File.Exists(wintunPath))
+            throw new FileNotFoundException($"The matching Wintun library was not found: {wintunPath}", wintunPath);
 
         var configPath = Utils.GetBinConfigPath("hev-tun.yml");
-        await File.WriteAllTextAsync(configPath, yaml.ToString(), new UTF8Encoding(false), cancellationToken);
+        await File.WriteAllTextAsync(configPath, yaml, new UTF8Encoding(false), cancellationToken);
 
         var startInfo = new ProcessStartInfo
         {
