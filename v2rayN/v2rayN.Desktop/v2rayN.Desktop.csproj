@@ -5,11 +5,11 @@
 		<ApplicationIcon>Assets\v2rayN.ico</ApplicationIcon>
 		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
 		<AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-		<AssemblyName>PattN</AssemblyName>
+		<AssemblyName>PepeN</AssemblyName>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<CETCompat>false</CETCompat>
-		<AssemblyTitle>PattN</AssemblyTitle>
-		<Product>PattN</Product>
+		<AssemblyTitle>PepeN</AssemblyTitle>
+		<Product>PepeN</Product>
 	</PropertyGroup>
 
     <ItemGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64' Or '$(RuntimeIdentifier)' == 'osx-arm64'">
