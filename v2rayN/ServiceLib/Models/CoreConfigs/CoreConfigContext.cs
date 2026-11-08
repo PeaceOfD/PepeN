@@ -18,6 +18,8 @@ public record CoreConfigContext
 
     // TUN Compatibility
     public bool IsTunEnabled { get; init; } = false;
+    // Hev owns the OS tunnel; the core must keep its local SOCKS inbound and must not emit a native TUN inbound.
+    public bool IsHevEnabled { get; init; } = false;
     public HashSet<string> ProtectDomainList { get; init; } = [];
     // Typically, it is the core of the outbound chain
     public HashSet<ECoreType> ProtectCoreTypeList { get; init; } = [];
