@@ -11,9 +11,9 @@
 		<SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<CETCompat>false</CETCompat>
-		<AssemblyName>PattN</AssemblyName>
-		<AssemblyTitle>PattN</AssemblyTitle>
-		<Product>PattN</Product>
+		<AssemblyName>PepeN</AssemblyName>
+		<AssemblyTitle>PepeN</AssemblyTitle>
+		<Product>PepeN</Product>
 	</PropertyGroup>
 
 	<ItemGroup>
