@@ -33,10 +33,6 @@ public sealed class HevTunService : IAsyncDisposable
     }
 
     /// <summary>
-    /// Starts Hev against the local SOCKS5 listener. The executable and matching-architecture
-    /// wintun.dll must be installed side-by-side in the application's bin directory.
-    /// </summary>
-    /// <summary>
     /// Builds a validated Hev configuration without touching the filesystem or network.
     /// Kept separate so the exact runtime configuration can be covered by unit tests.
     /// </summary>
@@ -69,6 +65,11 @@ public sealed class HevTunService : IAsyncDisposable
         return yaml.ToString();
     }
 
+    /// <summary>
+    /// Starts Hev against the local SOCKS5 listener. The executable and matching-architecture
+    /// wintun.dll must be installed side-by-side in the application's bin directory. Startup
+    /// is not considered successful until Windows reports the requested tunnel interface Up.
+    /// </summary>
     public static async Task<HevTunService> StartAsync(
         int socksPort,
         int mtu,
@@ -123,9 +124,7 @@ public sealed class HevTunService : IAsyncDisposable
             process.Exited += (_, _) => service.OnProcessExited();
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
-            await Task.Delay(300, cancellationToken);
-            if (process.HasExited)
-                throw new InvalidOperationException($"Hev exited during startup (exit code {process.ExitCode}).");
+            await WaitForTunnelInterfaceAsync(process, cancellationToken);
 
             if (report is not null)
                 await report(false, $"Hev started; SOCKS5 127.0.0.1:{socksPort}, interface {InterfaceName}.");
@@ -138,6 +137,32 @@ public sealed class HevTunService : IAsyncDisposable
             try { File.Delete(configPath); } catch { }
             throw;
         }
+    }
+
+    private static async Task WaitForTunnelInterfaceAsync(Process process, CancellationToken cancellationToken)
+    {
+        // Hev creates the Wintun adapter asynchronously. Do not let the caller install routes
+        // until Windows can see the adapter in the Up state.
+        var deadline = Stopwatch.StartNew();
+        var timeout = TimeSpan.FromSeconds(15);
+        while (deadline.Elapsed < timeout)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (process.HasExited)
+                throw new InvalidOperationException($"Hev exited during startup (exit code {process.ExitCode}).");
+
+            var ready = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()
+                .Any(adapter =>
+                    string.Equals(adapter.Name, InterfaceName, StringComparison.OrdinalIgnoreCase)
+                    && adapter.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up);
+            if (ready)
+                return;
+
+            await Task.Delay(150, cancellationToken);
+        }
+
+        throw new TimeoutException(
+            $"Hev did not bring the '{InterfaceName}' network interface Up within {timeout.TotalSeconds:0} seconds.");
     }
 
     private void OnProcessExited()
